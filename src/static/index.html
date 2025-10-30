@@ -15,10 +15,28 @@
     <main>
       <section id="activities-container">
         <h3>Available Activities</h3>
-        <div id="activities-list">
-          <!-- Activities will be loaded here -->
+        <div id="activities-list" class="activities-grid">
           <p>Loading activities...</p>
         </div>
+
+        <!-- Template used by app.js to render each activity -->
+        <template id="activity-template">
+          <div class="activity-card">
+            <h4 class="activity-name"></h4>
+            <p class="activity-desc"></p>
+            <p class="activity-schedule"></p>
+            <p class="activity-capacity"></p>
+
+            <div class="participants">
+              <h5>Participants</h5>
+              <ul class="participants-list" aria-live="polite">
+                <!-- participants inserted here, each with a delete icon -->
+              </ul>
+            </div>
+
+            <button class="signup-btn" type="button">Sign Up</button>
+          </div>
+        </template>
       </section>
 
       <section id="signup-container">
