@@ -42,7 +42,50 @@ document.addEventListener("DOMContentLoaded", () => {
       if (Array.isArray(activity.participants) && activity.participants.length) {
         activity.participants.forEach((p) => {
           const li = document.createElement("li");
-          li.textContent = p;
+          // Container span for email
+          const emailSpan = document.createElement("span");
+          emailSpan.textContent = p;
+          li.appendChild(emailSpan);
+
+          // Delete icon button
+          const delBtn = document.createElement("button");
+          delBtn.className = "delete-participant-btn";
+          delBtn.title = "Remover participante";
+          delBtn.innerHTML = "&#128465;"; // Unicode lixeira
+          delBtn.addEventListener("click", async (ev) => {
+            ev.stopPropagation();
+            if (!confirm(`Remover ${p} desta atividade?`)) return;
+            try {
+              const url = `/activities/${escapeName(name)}/unregister?email=${encodeURIComponent(p)}`;
+              const res = await fetch(url, { method: "DELETE" });
+              if (!res.ok) {
+                const errBody = await res.json().catch(() => ({}));
+                throw new Error(errBody.detail || "Falha ao remover participante");
+              }
+              // Atualiza UI
+              li.remove();
+              // Atualiza capacidade
+              const capEl = card.querySelector(".activity-capacity");
+              if (capEl) {
+                const currentText = capEl.textContent;
+                const match = currentText.match(/Capacity:\s*(\d+)\s*\/\s*(\d+)/);
+                if (match) {
+                  const current = Math.max(0, parseInt(match[1], 10) - 1);
+                  const max = match[2];
+                  capEl.textContent = `Capacity: ${current} / ${max}`;
+                }
+              }
+              // Se não houver mais participantes, mostra placeholder
+              if (ul.children.length === 0) {
+                const placeholder = document.createElement("li");
+                placeholder.textContent = "No participants yet.";
+                ul.appendChild(placeholder);
+              }
+            } catch (err) {
+              alert(err.message || "Erro ao remover participante");
+            }
+          });
+          li.appendChild(delBtn);
           ul.appendChild(li);
         });
       } else {
@@ -107,29 +150,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const body = await res.json();
       showMessage(body.message || "Signed up successfully!", "success");
 
-      // Update participants list in UI
-      if (participantsUl) {
-        // remove "No participants yet." placeholder if present
-        const placeholder = [...participantsUl.querySelectorAll("li")].find(li => li.textContent === "No participants yet.");
-        if (placeholder) placeholder.remove();
-
-        const li = document.createElement("li");
-        li.textContent = email;
-        participantsUl.appendChild(li);
-
-        // Update capacity text
-        const capEl = cardForActivity.querySelector(".activity-capacity");
-        if (capEl) {
-          const currentText = capEl.textContent;
-          const match = currentText.match(/Capacity:\s*(\d+)\s*\/\s*(\d+)/);
-          if (match) {
-            const current = parseInt(match[1], 10) + 1;
-            const max = match[2];
-            capEl.textContent = `Capacity: ${current} / ${max}`;
-          }
-        }
-      }
-
+        // Atualiza toda a lista de atividades para refletir o novo participante
+        await loadActivities();
       signupForm.reset();
     } catch (err) {
       showMessage(err.message || "Failed to sign up", "error");
